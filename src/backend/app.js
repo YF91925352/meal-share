@@ -7,7 +7,7 @@ const mealsRouter = require("./api/meals");
 const buildPath = path.join(__dirname, "../../dist");
 const port = process.env.PORT || 3000;
 const cors = require("cors");
-
+const knex = require("./database");
 // For week4 no need to look into this!
 // Serve the built client html
 app.use(express.static(buildPath));
@@ -21,10 +21,55 @@ app.use(cors());
 
 router.use("/meals", mealsRouter);
 
+// listen to the port
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
+});
+// test
+app.get("/", (req, res) => {
+  res.send("hello");
+});
+// Respond with all meals in the future (relative to the when datetime)
+app.get("/future-meals", async (req, res) => {
+  const [rows] = await knex.raw("SELECT * FROM meal WHERE `when`>DATE(NOW());");
+  rows.length !== 0
+    ? res.json(rows)
+    : res.status(200).send("there are no meals in the future");
+});
+//Respond with all meals in the past (relative to the when datetime)
+app.get("/past-meals", async (req, res) => {
+  const [rows] = await knex.raw(
+    "SELECT * FROM meal WHERE `when`< DATE(NOW());"
+  );
+  rows.length !== 0
+    ? res.json(rows)
+    : res.status(200).send("there are no meals in the past");
+});
+// Respond with all meals sorted by ID
+app.get("/all-meals", async (req, res) => {
+  const [rows] = await knex.raw("SELECT * FROM meal ORDER BY id;");
+  rows.length !== 0
+    ? res.json(rows)
+    : res.status(200).send("there are no meals");
+});
+// Respond with the first meal (meaning with the minimum id)
+app.get("/first-meal", async (req, res) => {
+  const [rows] = await knex.raw("SELECT * FROM meal LIMIT 1;");
+  rows.length !== 0
+    ? res.json(rows)
+    : res.status(404).send("there doesn't exist first meal");
+});
+// Respond with the last meal (meaning with the maximum id)
+app.get("/last-meal", async (req, res) => {
+  const [rows] = await knex.raw("SELECT * FROM meal ORDER BY id DESC LIMIT 1;");
+  rows.length !== 0
+    ? res.json(rows)
+    : res.status(404).send("there doesn't exist last meal");
+});
 if (process.env.API_PATH) {
   app.use(process.env.API_PATH, router);
 } else {
-  throw "API_PATH is not set. Remember to set it in your .env file"
+  throw "API_PATH is not set. Remember to set it in your .env file";
 }
 
 // for the frontend. Will first be covered in the react class
