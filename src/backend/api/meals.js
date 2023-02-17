@@ -3,75 +3,57 @@ const express = require("express");
 const router = express.Router();
 const knex = require("../database");
 
-/* 	Returns all meals */
 router.get("/", async (req, res) => {
+  const {
+    maxPrice,
+    availableReservations,
+    title,
+    dateAfter,
+    dateBefore,
+    limit,
+    sortKey,
+    sortDir,
+  } = req.query;
+  let filteredMeals = knex("meal").select("*");
   try {
-    const allMeals = await knex("meal").select("*");
+    if (maxPrice) filteredMeals = filteredMeals.where("price", "<=", maxPrice);
 
-    allMeals
-      ? res.json(allMeals)
-      : res.status(404).send(`id:${req.params.id} doesn't exist`);
-  } catch (error) {
-    res.status(500);
-    throw error.message;
-  }
-});
+    /* if (availableReservations) {
+      filteredMeals = filteredMeals
+        .join("reservation", "reservation.meal_id", "=", "meal.id")
+        .where("max_reservations", ">=", "number_of_guests");
+    } else {
+      filteredMeals = filteredMeals
+        .join("reservation", "reservation.meal_id", "=", "meal.id")
+        .where("max_reservations", "<", "number_of_guests");
+    } I don't know why this doesn't work*/
+    if (title)
+      filteredMeals = filteredMeals.where("title", "like", `%${title}`);
 
-/* Adds a new meal to the database */
-router.post("/", async (req, res) => {
-  try {
-    const addMeal = await knex("meal").insert(req.body);
-    addMeal
-      ? res.json("add meal successfully")
-      : res.status(404).send("can add this data");
-  } catch (error) {
-    res.status(500);
-    throw error.message;
-  }
-});
-/* Returns the meal by id */
-router.get("/:id", async (req, res) => {
-  try {
-    const queryMealById = await knex("meal")
-      .select("*")
-      .where({ id: req.params.id });
-    queryMealById.length !== 0
-      ? res.json(queryMealById)
-      : res.status(404).send(`id:${req.params.id} doesn't exist`);
-  } catch (error) {
-    res.status(500);
-    throw error.message;
-  }
-});
+    if (dateAfter) filteredMeals = filteredMeals.where("when", ">", dateAfter);
 
-/* Updates the meal by id */
-router.put("/:id", async (req, res) => {
-  try {
-    const updateMealById = await knex("meal")
-      .where({ id: req.params.id })
-      .update(req.body);
-    updateMealById
-      ? res.json(`update meal id=${req.params.id}`)
-      : res.status(404).send(`id:${req.params.id} doesn't exist`);
+    if (dateBefore)
+      filteredMeals = filteredMeals.where("when", "<", dateBefore);
+
+    if (limit) filteredMeals = filteredMeals.limit(limit);
+
+    if (
+      sortKey === "when" ||
+      sortKey === "max_reservations" ||
+      sortKey === "price"
+    ) {
+      if (sortDir === "asc" || sortDir === "desc") {
+        filteredMeals = filteredMeals.orderBy(sortKey, sortDir);
+      } else {
+        filteredMeals = filteredMeals.orderBy(sortKey);
+      }
+    }
+    filteredMeals = await filteredMeals;
+    res.json(filteredMeals);
   } catch (error) {
     res.status(500);
     throw error.message;
   }
 });
 
-/* Deletes the meal by id */
-router.delete("/:id", async (req, res) => {
-  try {
-    const deleteMealById = await knex("meal")
-      .where({ id: req.params.id })
-      .del();
-    console.log(deleteMealById);
-    deleteMealById
-      ? res.json(`delete meal id=${req.params.id}`)
-      : res.status(404).send(`id:${req.params.id} doesn't exist`);
-  } catch (error) {
-    res.status(500);
-    throw error.message;
-  }
-});
 module.exports = router;
