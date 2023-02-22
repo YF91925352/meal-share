@@ -1,14 +1,49 @@
+const { LogError } = require("concurrently");
 const express = require("express");
 const router = express.Router();
 const knex = require("../database");
 
-router.get("/", async (request, response) => {
+router.get("/", async (req, res) => {
+  const {
+    maxPrice,
+    availableReservations,
+    title,
+    dateAfter,
+    dateBefore,
+    limit,
+    sortKey,
+    sortDir,
+  } = req.query;
+  let filteredMeals = knex("meal");
   try {
-    // knex syntax for selecting things. Look up the documentation for knex for further info
-    const titles = await knex("meals").select("title");
-    response.json(titles);
+    if (maxPrice) filteredMeals = filteredMeals.where("price", "<=", maxPrice);
+
+    if (title)
+      filteredMeals = filteredMeals.where("title", "like", `%${title}`);
+
+    if (dateAfter) filteredMeals = filteredMeals.where("when", ">", dateAfter);
+
+    if (dateBefore)
+      filteredMeals = filteredMeals.where("when", "<", dateBefore);
+
+    if (limit) filteredMeals = filteredMeals.limit(limit);
+
+    if (
+      sortKey === "when" ||
+      sortKey === "max_reservations" ||
+      sortKey === "price"
+    ) {
+      if (sortDir === "asc" || sortDir === "desc") {
+        filteredMeals = filteredMeals.orderBy(sortKey, sortDir);
+      } else {
+        filteredMeals = filteredMeals.orderBy(sortKey);
+      }
+    }
+    filteredMeals = await filteredMeals;
+    res.json(filteredMeals);
   } catch (error) {
-    throw error;
+    res.status(500);
+    throw error.message;
   }
 });
 
