@@ -1,4 +1,4 @@
-const { LogError } = require("concurrently");
+
 const express = require("express");
 const router = express.Router();
 const knex = require("../database");
@@ -47,7 +47,7 @@ router.get("/:id", async (req, res) => {
     const queryReviewById = await knex("review")
       .select("*")
       .where({ id: req.params.id });
-    queryReviewById.length !== 0
+    queryReviewById
       ? res.json(queryReviewById)
       : res.status(404).send(`id:${req.params.id} doesn't exist`);
   } catch (error) {
