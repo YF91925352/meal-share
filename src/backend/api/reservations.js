@@ -5,7 +5,7 @@ const knex = require("../database");
 /* Returns all reservations */
 router.get("/", async (req, res) => {
   try {
-    const allReservations = await knex("reservation").select("*");
+    const allReservations = await knex("reservation");
     allReservations
       ? res.json(allReservations)
       : res.status(404).send(`id:${req.params.id} doesn't exist`);
