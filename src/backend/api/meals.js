@@ -14,19 +14,25 @@ router.get("/", async (req, res) => {
     sortKey,
     sortDir,
   } = req.query;
-  let filteredMeals = knex("meal").select("*");
+  let filteredMeals = knex("meal");
   try {
-    if (maxPrice) filteredMeals = filteredMeals.where("price", "<=", maxPrice);
+    /* if (maxPrice) filteredMeals = filteredMeals.where("price", "<=", maxPrice); */
 
-    /* if (availableReservations) {
+    if (availableReservations.toLowerCase() === "true") {
       filteredMeals = filteredMeals
         .join("reservation", "reservation.meal_id", "=", "meal.id")
-        .where("max_reservations", ">=", "number_of_guests");
+        .where(
+          "max_reservations",
+          ">",
+          knex.raw("reservation.number_of_guests")
+        );
     } else {
       filteredMeals = filteredMeals
         .join("reservation", "reservation.meal_id", "=", "meal.id")
         .where("max_reservations", "<", "number_of_guests");
-    } I don't know why this doesn't work*/
+    }
+    console.log(availableReservations.toLowerCase() === "true");
+
     if (title)
       filteredMeals = filteredMeals.where("title", "like", `%${title}`);
 
